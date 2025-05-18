@@ -37,7 +37,7 @@ Vector2i(36, 1), Vector2i(37, 1), Vector2i(39, 1), Vector2i(10, 2), Vector2i(23,
 Vector2i(24, 2), Vector2i(25, 2), Vector2i(26, 2), Vector2i(27, 2), Vector2i(42, 1), Vector2i(43, 1)]
 const RAMP_ORANGE_ATLAS_COORDS: Array = [Vector2i(48, 1), Vector2i(49, 1), Vector2i(50, 1), Vector2i(51, 1)]
 const TREASURE_BOX_ATLAS_COORDS: Array = [Vector2i(20, 3), Vector2i(21, 3), Vector2i(22, 3), Vector2i(23, 3)]
-const TRAP_ATLAS_COORDS: Array = [Vector2i(28, 3)]
+const TRAP_ATLAS_COORDS: Array = [Vector2i(17, 1)]
 const PLANT_ATLAS_COORDS: Array = [Vector2i(29, 3)]
 const BLOCKADE_ATLAS_COORDS: Array = [Vector2i(38, 1)]
 #Vector2i(30, 3), Vector2i(31, 3)
@@ -72,6 +72,7 @@ var player_input_enabled: bool = false
 var num_blocks = 0
 var reached_treasure: bool = false
 var camera_follow_explorer: bool = false
+var trap_func: Array = [spike_trap, trap_door]
 
 func _ready():
 	black_overlay.show()
@@ -105,6 +106,17 @@ func run_intro_scene():
 	#await DialogueManager.dialogue_ended
 	dialogue_line = await DialogueManager.get_next_dialogue_line(resource, "garden")
 	#await DialogueManager.dialogue_ended
+
+func trap_door():
+	pass
+
+func spike_trap():
+	explorer.animation_player.play("Spike")
+	await explorer.animation_player.finished
+
+func random_trap_explorer():
+	var pick_trap: Callable = trap_func.pick_random()
+	pick_trap.call()
 
 func execute_explorer_turn(movement_range):
 	calculate_distances_from_target()
@@ -144,7 +156,7 @@ func execute_explorer_turn(movement_range):
 	offset_pos = current_tile - grid_offset
 	distance_to_treasure = distance_to_treasure_grid[offset_pos.x][offset_pos.y]
 	if trap:
-		player_win()
+		random_trap_explorer()
 		return
 	if plant:
 		pass
@@ -495,6 +507,10 @@ func initiliaze_grid() -> void:
 			current_atlas_coords = traps_tile_map_layer.get_cell_atlas_coords(current_tile_pos)
 			if is_tile_in_list(current_atlas_coords, TRAP_ATLAS_COORDS):
 				grid_data[offset_pos.x][offset_pos.y]["trap"] = true
+				var spawn_light_location = grid_to_world(current_tile_pos)
+				var light = trap_light.instantiate()
+				add_child(light)
+				light.global_position = spawn_light_location
 			elif is_tile_in_list(current_atlas_coords, PLANT_ATLAS_COORDS):
 				grid_data[offset_pos.x][offset_pos.y]["plant"] = true
 				var spawn_light_location = grid_to_world(current_tile_pos)

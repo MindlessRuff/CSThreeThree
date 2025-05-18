@@ -231,7 +231,7 @@ texture = SubResource("PortableCompressedTexture2D_25pii")
 offset = Vector2(0, -200)
 hframes = 9
 vframes = 9
-frame = 78
+frame = 62
 metadata/_aseprite_wizard_interface_config_ = {
 "animation_section": false,
 "layer_section": false,

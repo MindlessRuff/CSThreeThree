@@ -39,8 +39,11 @@ tile_map_data = PackedByteArray("AADp//j/AQAvAAMAAADq//f/AQAvAAMAAADq//j/AQAvAAM
 [node name="Items" parent="Level" index="6"]
 tile_map_data = PackedByteArray("AAD+//X/AQAVAAMAAAA=")
 
+[node name="Traps" parent="Level" index="7"]
+tile_map_data = PackedByteArray()
+
 [node name="InitialSpawnPosition" parent="Level" index="10"]
-position = Vector2(-2691, 1459)
+position = Vector2(-2303, 1277)
 
 [node name="Marker2D" type="Marker2D" parent="." index="5"]
 position = Vector2(-8451, -3456)
