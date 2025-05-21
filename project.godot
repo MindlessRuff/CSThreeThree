@@ -27,6 +27,10 @@ DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 runtime/balloon_path="res://scenes/dialog/balloon.tscn"
 
+[display]
+
+window/stretch/mode="canvas_items"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/TopDownCamera2D/plugin.cfg", "res://addons/dialogue_manager/plugin.cfg", "res://addons/maaacks_game_template/plugin.cfg", "res://addons/state_machine_nodes/plugin.cfg")

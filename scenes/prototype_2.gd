@@ -45,13 +45,13 @@ const BLOCKADE_ATLAS_COORDS: Array = [Vector2i(38, 1)]
 # const TILE_ARROW_RIGHT = Vector2i(53, 3)
 # const TILE_ARROW_LEFT = Vector2i(54, 3)
 # const TILE_ARROW_UP = Vector2i(55, 3)
-const TILE_ARROW_RIGHT = Vector2i(56, 3)
+const TILE_ARROW_RIGHT = Vector2i(22, 3)
 const TILE_ARROW_UP = Vector2i(57, 3)
 const TILE_ARROW_DOWN = Vector2i(58, 3)
 const TILE_ARROW_LEFT = Vector2i(59, 3)
 const INF = 1e9
 const DIRECTIONS = [Vector2i.DOWN, Vector2i.UP, Vector2i.RIGHT, Vector2i.LEFT]
-const PATH_ARROW_INTERVAL = 10
+const PATH_ARROW_INTERVAL = 12
 
 @export var intro = false
 @export var is_intro_sequence = false
@@ -72,7 +72,6 @@ var player_input_enabled: bool = false
 var num_blocks = 0
 var reached_treasure: bool = false
 var camera_follow_explorer: bool = false
-var trap_func: Array = [spike_trap, trap_door]
 
 func _ready():
 	black_overlay.show()
@@ -107,16 +106,8 @@ func run_intro_scene():
 	dialogue_line = await DialogueManager.get_next_dialogue_line(resource, "garden")
 	#await DialogueManager.dialogue_ended
 
-func trap_door():
-	pass
-
-func spike_trap():
-	explorer.animation_player.play("Spike")
-	await explorer.animation_player.finished
-
 func random_trap_explorer():
-	var pick_trap: Callable = trap_func.pick_random()
-	pick_trap.call()
+	explorer.kill()
 
 func execute_explorer_turn(movement_range):
 	calculate_distances_from_target()
@@ -226,9 +217,19 @@ func player_win():
 	get_parent().level_won.emit()
 
 func execute_player_turn():
-	pass
+	var wall_to_remove = walls_placed.pop_back()
+	if wall_to_remove:
+		var tile_data = wall_to_remove["tile_data"]
+		var wall_grid_coords = wall_to_remove["wall_grid_coords"]
+		var floor_atlas_coords = wall_to_remove["floor_atlas_coords"]
+		tile_data["obstructed"] = false
+		tile_data["blockade"] = false
+		set_grid_info(wall_grid_coords, tile_data)
+		walls_tile_map_layer.erase_cell(wall_grid_coords)
+		floor_tile_map_layer.set_cell(wall_grid_coords, source_id, floor_atlas_coords)
 
 func place_wall(wall_grid_coords: Vector2i):
+	player_input_enabled = false
 	var offset_pos = wall_grid_coords - grid_offset
 	if not is_within_grid(offset_pos):
 		push_error("Cannot place a wall outside the play area.")
@@ -255,16 +256,17 @@ func place_wall(wall_grid_coords: Vector2i):
 	tile_data["obstructed"] = true
 	tile_data["blockade"] = true
 	set_grid_info(wall_grid_coords, tile_data)
-	walls_tile_map_layer.set_cell(wall_grid_coords, source_id, BLOCKADE_ATLAS_COORDS.pick_random())
-	floor_tile_map_layer.erase_cell(wall_grid_coords)
-	var obstacle = NavigationObstacle2D.new()
-	add_child(obstacle)
-	obstacle.global_position = grid_to_world(wall_grid_coords)
+	var floor_atlas_coords = floor_tile_map_layer.get_cell_atlas_coords(wall_grid_coords)
 	walls_placed.append({
 		"wall_grid_coords": wall_grid_coords, 
-		"tile_data": tile_data})
+		"tile_data": tile_data,
+		"floor_atlas_coords": floor_atlas_coords
+		})
+	walls_tile_map_layer.set_cell(wall_grid_coords, source_id, BLOCKADE_ATLAS_COORDS.pick_random())
+	floor_tile_map_layer.erase_cell(wall_grid_coords)
 	num_blocks -= 1
 	%BlockadeLabel.text = "Blockades: %d/3" % [num_blocks]
+	player_input_enabled = true
 
 func load_level_data(data: Dictionary):
 	explorer.global_position = data["explorer_pos"]
@@ -367,9 +369,11 @@ func calculate_optimal_path(dist, tile_pos) -> Array[Dictionary]:
 				if is_within_grid(neighbor_pos_offset):
 					var neighbor_distance = distance_to_treasure_grid[neighbor_pos_offset.x][neighbor_pos_offset.y]
 
+
 					if neighbor_distance == dist - 1:
 						var arrow_direction = neighbor_pos - current_tile_pos
-						var arrow_tile = get_arrow_tile(arrow_direction)
+						var arrow_tile = TILE_ARROW_RIGHT
+						 #get_arrow_tile(arrow_direction)
 
 						if arrow_tile != Vector2i(-1, -1):
 							path_highlight_info.append({
@@ -407,8 +411,8 @@ func show_debug_path(path_info: Array[Dictionary]):
 		var coords = info["coords"]
 		var tile_to_set = info["tile"]
 
-		if tile_to_set != Vector2i(-1, -1) and index % PATH_ARROW_INTERVAL == 0:
-			#highlight_path.set_cell(coords, source_id, tile_to_set)
+		if tile_to_set != Vector2i(-1, -1) and index % 3 == 0:
+			highlight_path.set_cell(coords, source_id, tile_to_set)
 			last_tile_path.append(coords)
 		full_tile_path.append(coords)
 		index += 1
@@ -545,7 +549,7 @@ func calculate_distances_from_target() -> void:
 				if is_within_grid(neighbor_pos_offset):
 					var neighbor_data = get_grid_info(neighbor_pos)
 					var blocked = neighbor_data["obstructed"]
-					if not blocked:
+					if not blocked and neighbor_data["walkable"]:
 						if distance_to_treasure_grid[neighbor_pos_offset.x][neighbor_pos_offset.y] == INF:
 							distance_to_treasure_grid[neighbor_pos_offset.x][neighbor_pos_offset.y] = current_distance + 1
 							queue.append(neighbor_pos)

@@ -8,6 +8,8 @@ func _enter_state(_old_state: StringName, _params: Dictionary) -> void:
 func _physics_process(_delta: float) -> void:
 	var animation_name = "Run_{0}".format([player.facing_direction])
 	animation_player.play(animation_name)
+	if player.is_dead:
+		return enter_state(&"Dead")
 	if player.velocity == Vector2.ZERO:
 		return enter_state(&"Idle")
 
